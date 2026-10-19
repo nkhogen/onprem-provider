@@ -401,6 +401,9 @@ sudo ./node-agent-provision.sh</code></pre>
     }
     sw.addEventListener('click', function () { set(sw.getAttribute('aria-checked') !== 'true'); });
     set(location.hash === '#unprivileged');
+    window.addEventListener('hashchange', function () {
+      if (location.hash === '#privileged' || location.hash === '#unprivileged') set(location.hash === '#unprivileged');
+    });
   })();
 </script>
 </body>
