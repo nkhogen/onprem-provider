@@ -3,8 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>On-premises provisioning: Privileged vs Unprivileged | YugabyteDB Anywhere</title>
-<meta name="description" content="Choose between Privileged and Unprivileged provisioning for YugabyteDB Anywhere on-premises providers.">
+<title>On-premises provisioning: choose Privileged or Unprivileged | YugabyteDB Anywhere</title>
+<meta name="description" content="Decide whether your YugabyteDB Anywhere on-premises provider should be Privileged or Unprivileged, then go to the matching setup guide.">
+<script>
+  // Old links pointed at the guide on this URL; send them to guide.html.
+  (function () {
+    var h = location.hash;
+    if (h === '#privileged' || h === '#unprivileged') location.replace('guide.html' + h);
+  })();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -19,8 +26,6 @@
     --priv-soft: #e3f1f0;
     --unpriv: #a65f0c;
     --unpriv-soft: #fbefdf;
-    --accent: var(--priv);
-    --accent-soft: var(--priv-soft);
     --code-bg: #eceff3;
     color-scheme: light;
   }
@@ -39,10 +44,7 @@
       color-scheme: dark;
     }
   }
-  body[data-mode="unprivileged"] { --accent: var(--unpriv); --accent-soft: var(--unpriv-soft); }
-
   *, *::before, *::after { box-sizing: border-box; }
-  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
   body {
     margin: 0;
     padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
@@ -50,356 +52,121 @@
     color: var(--ink);
     font: 400 17px/1.6 "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
   }
-  main { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
-
+  main { max-width: 52rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
   h1 { font-size: 2.1rem; line-height: 1.2; font-weight: 600; margin: 0 0 0.75rem; letter-spacing: -0.01em; }
   h2 { font-size: 1.4rem; line-height: 1.3; font-weight: 600; margin: 3rem 0 0.75rem; }
-  h3 { font-size: 1.1rem; font-weight: 600; margin: 2rem 0 0.5rem; }
   p, li { max-width: 68ch; }
-  a { color: var(--accent); text-underline-offset: 2px; }
-  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  a { color: var(--priv); text-underline-offset: 2px; }
+  a:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; border-radius: 4px; }
   code {
     font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 0.88em;
-    background: var(--code-bg);
-    padding: 0.1em 0.35em;
-    border-radius: 4px;
+    font-size: 0.88em; background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px;
   }
   .lede { color: var(--muted); font-size: 1.1rem; margin: 0 0 2.5rem; }
 
-  /* The switch panel: mirrors the YBA "Manually Provision Nodes" slider */
-  .panel {
-    background: var(--surface);
-    border: 1px solid var(--rule);
-    border-left: 6px solid var(--accent);
-    border-radius: 10px;
-    padding: 1.5rem 1.5rem 1.25rem;
-    transition: border-color 0.25s ease;
+  .question { font-size: 1.25rem; font-weight: 600; margin: 0 0 1.25rem; max-width: 40ch; }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .choice {
+    display: flex; flex-direction: column;
+    background: var(--surface); border: 1px solid var(--rule); border-top: 6px solid var(--c);
+    border-radius: 10px; padding: 1.25rem 1.25rem 1.4rem;
   }
-  .question { font-size: 1.2rem; font-weight: 600; margin: 0 0 1.25rem; }
-  .switch-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-  .switch {
-    appearance: none; border: 0; padding: 0; cursor: pointer;
-    width: 3.6rem; height: 2rem; border-radius: 1rem;
-    background: var(--rule); position: relative; flex: none;
-    transition: background 0.25s ease;
+  .choice.priv { --c: var(--priv); --c-soft: var(--priv-soft); }
+  .choice.unpriv { --c: var(--unpriv); --c-soft: var(--unpriv-soft); }
+  .answer { font-weight: 600; color: var(--c); margin: 0; }
+  .choice h3 { font-size: 1.5rem; margin: 0.15rem 0 0.75rem; }
+  .choice ul { padding-left: 1.2rem; margin: 0 0 1.25rem; }
+  .choice li { margin-bottom: 0.4rem; }
+  .go {
+    margin-top: auto; align-self: flex-start;
+    display: inline-block; padding: 0.6rem 1rem; border-radius: 6px;
+    background: var(--c); color: #fff; font-weight: 600; text-decoration: none;
   }
-  .switch::after {
-    content: ""; position: absolute; top: 0.25rem; left: 0.25rem;
-    width: 1.5rem; height: 1.5rem; border-radius: 50%;
-    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    transition: transform 0.25s ease;
-  }
-  .switch[aria-checked="true"] { background: var(--unpriv); }
-  .switch[aria-checked="true"]::after { transform: translateX(1.6rem); }
-  .switch-label { font-weight: 500; }
-  .switch-state { color: var(--muted); }
-  .verdict {
-    margin: 1.25rem 0 0; padding: 0.9rem 1rem;
-    background: var(--accent-soft); border-radius: 6px;
-    transition: background 0.25s ease;
-  }
-  .verdict strong { color: var(--accent); }
-  .hint { color: var(--muted); font-size: 0.92rem; margin: 0.9rem 0 0; }
+  @media (prefers-color-scheme: dark) { .go { color: #12161c; } }
+  .go:hover { filter: brightness(1.08); }
+  .go:focus-visible { outline: 3px solid var(--c); outline-offset: 3px; }
 
-  body[data-mode="privileged"] .only-unpriv,
-  body[data-mode="unprivileged"] .only-priv { display: none; }
+  .signals { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+  .signals th, .signals td { text-align: left; vertical-align: top; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--rule); }
+  .signals tr:last-child td { border-bottom: 0; }
+  .signals thead th { font-weight: 600; }
+  .signals td:last-child { white-space: nowrap; font-weight: 600; }
+  .to-priv { color: var(--priv); }
+  .to-unpriv { color: var(--unpriv); }
 
-  .mode-name { color: var(--accent); }
-
-  ol.steps { padding-left: 1.4rem; }
-  ol.steps > li { margin-bottom: 0.9rem; padding-left: 0.3rem; }
-  ol.steps > li::marker { color: var(--accent); font-weight: 600; }
-  ul { padding-left: 1.3rem; }
-  ul li { margin-bottom: 0.35rem; }
-
-  .callout {
-    border: 1px solid var(--rule); border-radius: 6px;
-    padding: 0.85rem 1rem; margin: 1.25rem 0; background: var(--surface);
-  }
-  .callout.warn { border-color: var(--unpriv); }
-
-  .table-wrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
-  table { border-collapse: collapse; width: 100%; min-width: 36rem; font-size: 0.95rem; }
-  th, td { text-align: left; vertical-align: top; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--rule); }
-  tr:last-child th, tr:last-child td { border-bottom: 0; }
-  thead th { font-weight: 600; }
-  tbody th { font-weight: 500; color: var(--muted); width: 26%; }
-  th.col-priv { color: var(--priv); }
-  th.col-unpriv { color: var(--unpriv); }
-  body[data-mode="privileged"] td.c-priv,
-  body[data-mode="unprivileged"] td.c-unpriv { background: var(--accent-soft); }
-
-  details { border-top: 1px solid var(--rule); padding: 0.9rem 0; }
-  details:last-of-type { border-bottom: 1px solid var(--rule); }
-  summary { cursor: pointer; font-weight: 500; }
-  details p { margin: 0.6rem 0 0; }
-  details.inline { border: 0; padding: 0.4rem 0 0; }
-  pre {
-    background: var(--code-bg); border-radius: 6px; padding: 0.8rem 1rem;
-    overflow-x: auto; margin: 0.7rem 0; font-size: 0.85rem; line-height: 1.5;
-  }
-  pre code { background: none; padding: 0; font-size: inherit; white-space: pre; }
-  .shot { margin: 1.25rem 0 0; }
+  .shot { margin: 1rem 0 0; }
   .shot img { display: block; max-width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 8px; }
   .shot figcaption { color: var(--muted); font-size: 0.92rem; margin-top: 0.5rem; }
-  .table-caption { font-weight: 500; margin: 1.2rem 0 0; }
-  table.opts { min-width: 30rem; }
-  table.opts td:first-child { white-space: nowrap; width: 30%; }
-  .source { color: var(--muted); font-size: 0.9rem; margin-top: 1.5rem; }
+  .existing { display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0 0; padding: 0; list-style: none; }
+  .existing a { font-weight: 600; }
 
   footer { margin-top: 4rem; color: var(--muted); font-size: 0.9rem; }
 
-  @media (max-width: 520px) {
+  @media (max-width: 640px) {
     body { font-size: 16px; }
     h1 { font-size: 1.7rem; }
-    .panel { padding: 1.25rem 1rem 1rem; }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { transition: none !important; }
+    .choices { grid-template-columns: 1fr; }
   }
 </style>
 </head>
-<body data-mode="privileged">
+<body>
 <main>
-  <h1>On-premises provisioning: Privileged or Unprivileged</h1>
-  <p class="lede">With on-premises providers, YugabyteDB Anywhere (YBA) does not create VMs. You create the VMs and install a supported Linux OS, then add them to the provider’s free pool of nodes. Whether a node must be provisioned before you add it depends on the provisioning mode.</p>
+  <h1>Set up an on-premises provider</h1>
+  <p class="lede">YugabyteDB Anywhere (YBA) supports two kinds of on-premises provider. They differ in one thing: whether YBA gets root-level access to your database nodes. Answer the question below and follow the guide for your answer.</p>
 
-  <section class="panel" aria-labelledby="q">
-    <p class="question" id="q">Will you give YBA an SSH user with passwordless <code>sudo</code> on your database nodes?</p>
-    <div class="switch-row">
-      <button class="switch" id="mode-switch" role="switch" aria-checked="false" aria-labelledby="switch-label"></button>
-      <span><span class="switch-label" id="switch-label">Manually Provision Nodes</span> <span class="switch-state" id="switch-state">is OFF</span></span>
-    </div>
-    <p class="verdict only-priv"><strong>Privileged.</strong> Yes, YBA gets <code>sudo</code>. You add bare VMs and YBA provisions them over SSH, including OS-level settings.</p>
-    <p class="verdict only-unpriv"><strong>Unprivileged.</strong> No, YBA never gets <code>sudo</code>. Your system administrator runs <code>node-agent-provision.sh</code> on each node first; the script also adds the node to the free pool.</p>
-    <figure class="shot">
-      <img src="data:image/png;base64,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" width="960" height="311" alt="YBA provider Advanced settings, with the Manually Provision Nodes toggle highlighted. ON means Unprivileged, OFF means Privileged.">
-      <figcaption>In YBA, this is the <strong>Manually Provision Nodes</strong> toggle under <strong>Advanced</strong> in the provider settings. OFF is Privileged, ON is Unprivileged. The example shown is ON, so that provider is Unprivileged.</figcaption>
-    </figure>
-  </section>
+  <p class="question">Will you give YBA an SSH user with passwordless <code>sudo</code> on your database nodes?</p>
+  <div class="choices">
+    <section class="choice priv" aria-labelledby="c-priv">
+      <p class="answer">Yes</p>
+      <h3 id="c-priv">Privileged</h3>
+      <ul>
+        <li>YBA provisions each node over SSH, including kernel and OS settings.</li>
+        <li>You create the VMs and the SSH user, then add the bare VMs in YBA.</li>
+        <li><strong>Manually Provision Nodes</strong> is OFF.</li>
+      </ul>
+      <a class="go" href="guide.html#privileged">Set up a Privileged provider</a>
+    </section>
+    <section class="choice unpriv" aria-labelledby="c-unpriv">
+      <p class="answer">No</p>
+      <h3 id="c-unpriv">Unprivileged</h3>
+      <ul>
+        <li>YBA never gets <code>sudo</code>. Your administrator runs <code>node-agent-provision.sh</code> on each node.</li>
+        <li>The script can also create the provider and add the node to it.</li>
+        <li><strong>Manually Provision Nodes</strong> is ON.</li>
+      </ul>
+      <a class="go" href="guide.html#unprivileged">Set up an Unprivileged provider</a>
+    </section>
+  </div>
 
-  <h2>How the two modes compare</h2>
+  <h2>Still not sure?</h2>
+  <p>These situations usually decide it.</p>
   <div class="table-wrap">
-    <table>
-      <thead>
-        <tr><th scope="col"></th><th scope="col" class="col-priv">Privileged</th><th scope="col" class="col-unpriv">Unprivileged</th></tr>
-      </thead>
+    <table class="signals">
+      <thead><tr><th scope="col">If this is true for you</th><th scope="col">Choose</th></tr></thead>
       <tbody>
-        <tr><th scope="row">YBA access to the node</th><td class="c-priv">SSH user with passwordless <code>sudo</code></td><td class="c-unpriv">SSH user without <code>sudo</code>, or no SSH from YBA during provisioning</td></tr>
-        <tr><th scope="row">Who provisions the node</th><td class="c-priv">YBA, automatically</td><td class="c-unpriv">Your system administrator, by running <code>node-agent-provision.sh</code> as root or via <code>sudo</code></td></tr>
-        <tr><th scope="row">OS-level changes (kernel settings, ulimits, users, directories, services)</th><td class="c-priv">Made by YBA over SSH</td><td class="c-unpriv">Made by the provisioning script, run by you</td></tr>
-        <tr><th scope="row">What you do on the node</th><td class="c-priv">Usually nothing beyond creating the VM and the SSH user</td><td class="c-unpriv">Download the node agent package, edit the configuration file, run the script</td></tr>
-        <tr><th scope="row">Typical reason to choose it</th><td class="c-priv">Simplest operation, with the fewest manual steps</td><td class="c-unpriv">Security policy does not allow third-party software to hold root or <code>sudo</code> access</td></tr>
-        <tr><th scope="row">Manually Provision Nodes</th><td class="c-priv">OFF</td><td class="c-unpriv">ON</td></tr>
+        <tr><td>Security policy does not allow third-party software to hold root or <code>sudo</code> access</td><td class="to-unpriv">Unprivileged</td></tr>
+        <tr><td>An OS team and a DB team share the work, and the DB team has no <code>sudo</code></td><td class="to-unpriv">Unprivileged</td></tr>
+        <tr><td>Node changes must go through your own automation or change control</td><td class="to-unpriv">Unprivileged</td></tr>
+        <tr><td>You want the fewest manual steps on each node</td><td class="to-priv">Privileged</td></tr>
+        <tr><td>YBA may already reach the nodes over SSH as a <code>sudo</code> user</td><td class="to-priv">Privileged</td></tr>
       </tbody>
     </table>
   </div>
-  <p>If you are unsure, start from your organization’s security policy. If granting root-equivalent access to YBA is not allowed, use Unprivileged provisioning.</p>
+  <p>Either way, YBA manages the universe through node agent after provisioning: creating universes, upgrades, scaling and backups work the same.</p>
 
-  <!-- Privileged steps -->
-  <section class="only-priv" aria-labelledby="priv-steps">
-    <h2 id="priv-steps">Set up <span class="mode-name">Privileged</span> provisioning</h2>
-    <p>YBA connects to each node over SSH as a user with passwordless <code>sudo</code> and performs all OS-level provisioning itself. After the VMs exist, you typically do not need to run anything on the nodes.</p>
-    <ol class="steps">
-      <li><strong>Open the network.</strong> Have your network administrator open the ports YBA and the nodes need to communicate. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/networking/">Networking</a>.</li>
-      <li><strong>Create the VMs.</strong> Place them in the regions and availability zones where you will deploy universes, install a YugabyteDB-supported Linux OS, and create an SSH user with passwordless <code>sudo</code> on every VM (for example, <code>ec2-user</code> on AWS EC2). See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/server-nodes-software/software-on-prem-legacy/">Privileged provisioning requirements</a>.</li>
-      <li><strong>Create the provider in YBA.</strong> Define regions and availability zones, provide the SSH credentials for the <code>sudo</code>-capable user, provide the NTP setup, and leave <strong>Manually Provision Nodes</strong> OFF. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises-provider/">Create the provider configuration</a>.</li>
-      <li><strong>Define instance types.</strong> An instance type describes basic properties of the VMs you will add.</li>
-      <li><strong>Add the VMs to the provider.</strong> YBA provisions each VM automatically using the <code>sudo</code>-capable SSH user.</li>
-      <li><strong>Run pre-checks</strong> to validate the nodes. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises-nodes/">Add nodes to the on-premises provider</a>.</li>
-    </ol>
-    <div class="callout warn"><strong>Turning on Manually Provision Nodes changes the mode.</strong> The provider becomes Unprivileged: YBA stops provisioning nodes, and each node must be prepared with <code>node-agent-provision.sh</code> before you add it.</div>
-  </section>
+  <h2>Already have a provider?</h2>
+  <p>Open it in YBA and look at <strong>Manually Provision Nodes</strong> under <strong>Advanced</strong>.</p>
+  <figure class="shot">
+    <img src="data:image/png;base64,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" width="960" height="311" alt="YBA provider Advanced settings, with the Manually Provision Nodes toggle highlighted. ON means Unprivileged, OFF means Privileged.">
+    <figcaption>The example shown is ON, so that provider is Unprivileged.</figcaption>
+  </figure>
+  <ul class="existing">
+    <li><a class="to-priv" href="guide.html#privileged">OFF: Privileged guide</a></li>
+    <li><a class="to-unpriv" href="guide.html#unprivileged">ON: Unprivileged guide</a></li>
+  </ul>
 
-  <!-- Unprivileged steps -->
-  <section class="only-unpriv" aria-labelledby="unpriv-steps">
-    <h2 id="unpriv-steps">Set up <span class="mode-name">Unprivileged</span> provisioning</h2>
-    <p>YBA has no <code>sudo</code> access to your nodes. Your system administrator prepares each node with the <code>node-agent-provision.sh</code> script, which provisions the VM, installs node agent, and can also create the on-premises provider and add the node to its free pool.</p>
-    <p>Root or <code>sudo</code> is needed only while the script runs. After the node is provisioned and node agent is installed, <code>sudo</code> is no longer required.</p>
-
-    <h3>Before you start</h3>
-    <ul>
-      <li>One, three, five, or more VMs with a <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/server-nodes-software/#linux-os">supported Linux OS</a> and the <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/server-nodes-software/#additional-software">additional software</a> installed. For nodes without internet access, also install the <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/server-nodes-software/#additional-software-for-airgapped-deployment">airgapped software</a>.</li>
-      <li>YBA <a href="https://docs.yugabyte.com/stable/yugabyte-platform/install-yugabyte-platform/">installed and running</a> (recommended, so the script can register the node).</li>
-      <li>The VMs are reachable from YBA on ports 9070 and 443. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/networking/">Networking requirements</a>.</li>
-      <li>Data directories or mount points created on each node, typically <code>/data</code>, or <code>/mnt/d0</code>, <code>/mnt/d1</code>, and so on for multiple drives. The <code>yugabyte</code> user that the script creates must be able to access them.</li>
-    </ul>
-
-    <h3 id="unpriv-provider">Set up the provider</h3>
-    <p>An Unprivileged provider is an on-premises provider with <strong>Manually Provision Nodes</strong> ON and no SSH key pair. You can set it up in either of two ways.</p>
-    <p><strong>Let the script create it (recommended).</strong> Fill in the YBA connection and provider details in <code>node-agent-provision.yaml</code> (step 2 below). The first node you provision creates the provider with Manually Provision Nodes ON, along with its region, zone and instance type. Each later node that uses the same provider name is added to that provider. You can skip the UI steps that follow.</p>
-    <p><strong>Or create it in the YBA UI first</strong>, for example to review the settings before any node registers:</p>
-    <ol class="steps">
-      <li>Go to <strong>Integrations &gt; Infrastructure &gt; On-Premises Datacenters</strong> and click <strong>Create Config</strong>.</li>
-      <li>Enter a <strong>Provider Name</strong>. Use the same name in <code>node-agent-provision.yaml</code> so the script adds nodes to this provider.</li>
-      <li>Under <strong>Regions</strong>, click <strong>Add Region</strong>, enter a name and location, and click <strong>Add Zone</strong> for each zone. On premises, treat racks as zones so they act as fault domains.</li>
-      <li>Leave <strong>SSH Key Pairs</strong> empty. An Unprivileged provider does not give YBA an SSH user.</li>
-      <li>
-        Under <strong>Advanced</strong>, set:
-        <ul>
-          <li><strong>Manually Provision Nodes</strong>: ON. This is what makes the provider Unprivileged.</li>
-          <li><strong>DB Nodes have public internet access</strong>: OFF for airgapped installations.</li>
-          <li><strong>YB Nodes Home Directory</strong>: optional, defaults to <code>/home/yugabyte</code>. If you set it, use the same path as the <code>yugabyte</code> user’s home in <code>node-agent-provision.yaml</code>.</li>
-          <li><strong>Install Node Exporter</strong>, <strong>Node Exporter User</strong> and <strong>Node Exporter Port</strong>: keep the defaults unless Node Exporter is already on the nodes or the <code>prometheus</code> user is pre-created.</li>
-          <li><strong>NTP Setup</strong>: choose <strong>Assume NTP server configured in machine image</strong> if time sync is already handled on the nodes (for example through <code>chrony_servers</code> in the provisioning file), or <strong>Specify Custom NTP Server(s)</strong>.</li>
-        </ul>
-      </li>
-      <li>Click <strong>Create Provider Configuration</strong> and wait for it to finish.</li>
-      <li>Provision the nodes as described next. If you don’t give the script the YBA connection details, add the provisioned nodes yourself: open the provider, choose <strong>Instances</strong>, click <strong>Add Instance Type</strong>, then <strong>Add Instances</strong> with each node’s IP address, and wait for the preflight check to pass. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises-nodes/">Add nodes to the on-premises provider</a>.</li>
-    </ol>
-    <p>For every provider setting, see <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises-provider/">Manage the provider configuration</a>.</p>
-
-    <h3>Provision each node</h3>
-    <ol class="steps">
-      <li>
-        <strong>Download the node agent package to the VM.</strong> If YBA is running, download it with the API. This works without internet access and gets the node agent version that matches your YBA.
-<pre><code>curl -k https://&lt;yba_address&gt;/api/v1/node_agents/download\?downloadType\=package\&amp;os\=LINUX\&amp;arch\=AMD64 --fail --header 'X-AUTH-YW-API-TOKEN: &lt;api_token&gt;' &gt; node-agent.tar.gz
-tar -xvzf node-agent.tar.gz &amp;&amp; cd 2026.1.2.0-b137/scripts/</code></pre>
-        <p>Replace <code>&lt;yba_address&gt;</code> with your YBA address and <code>&lt;api_token&gt;</code> with an <a href="https://docs.yugabyte.com/stable/yugabyte-platform/anywhere-automation/#authentication">API token</a> from a user with the Admin role or higher. Use <code>ARM64</code> instead of <code>AMD64</code> on ARM nodes, and use the version directory from your package.</p>
-        <details class="inline">
-          <summary>Download from the YBA Installer package instead</summary>
-<pre><code>wget https://downloads.yugabyte.com/releases/2026.1.2.0/yba_installer_full-2026.1.2.0-b137-linux-x86_64.tar.gz
-tar -xf yba_installer_full-2026.1.2.0-b137-linux-x86_64.tar.gz
-cd yba_installer_full-2026.1.2.0-b137/
-tar -xf yugabundle-2026.1.2.0-b137-centos-x86_64.tar.gz
-cd yugabyte-2026.1.2.0-b137/
-tar -xf node_agent-2026.1.2.0-b137-linux-amd64.tar.gz &amp;&amp; cd 2026.1.2.0-b137/scripts/</code></pre>
-          <p>On ARM, extract <code>node_agent-2026.1.2.0-b137-linux-arm64.tar.gz</code> instead.</p>
-        </details>
-      </li>
-      <li>
-        <strong>Edit <code>node-agent-provision.yaml</code></strong> in the <code>scripts</code> directory. The file is commented; <a href="https://github.com/yugabyte/yugabyte-db/blob/2026.1.2/managed/node-agent/resources/node-agent-provision.yaml">see its defaults on GitHub</a>. These are the options you typically change.
-        <p class="table-caption">Node settings</p>
-        <div class="table-wrap"><table class="opts">
-          <thead><tr><th scope="col">Option</th><th scope="col">What to set</th></tr></thead>
-          <tbody>
-            <tr><td><code>yb_home_dir</code></td><td>Directory on the node where YugabyteDB is installed.</td></tr>
-            <tr><td><code>yb_user_home</code></td><td>Home directory of the <code>yugabyte</code> user. Defaults to <code>yb_home_dir</code>. v2025.2.4.0 and later.</td></tr>
-            <tr><td><code>chrony_servers</code></td><td>Addresses of your NTP servers.</td></tr>
-            <tr><td><code>yb_user_id</code></td><td>UID for the <code>yugabyte</code> user. Use the same UID on every node for consistency.</td></tr>
-            <tr><td><code>is_airgap</code></td><td><code>true</code> for airgapped installations.</td></tr>
-            <tr><td><code>use_system_level_systemd</code></td><td>Defaults to <code>false</code>, which uses user-level systemd.</td></tr>
-            <tr><td><code>node_ip</code></td><td>FQDN or IP address of this node, reachable from the other nodes.</td></tr>
-            <tr><td><code>tmp_directory</code></td><td>Directory for temporary files during provisioning.</td></tr>
-            <tr><td><code>is_configure_clockbound</code></td><td>Installs <a href="https://github.com/aws/clock-bound">ClockBound</a> as a systemd unit to improve clock accuracy and reduce YSQL read-restart errors. Requires chrony. Universes created with the provider get <code>time_source</code> set to <code>clockbound</code>.</td></tr>
-          </tbody>
-        </table></div>
-        <p class="table-caption">YBA connection (lets the script create or update the provider)</p>
-        <div class="table-wrap"><table class="opts">
-          <thead><tr><th scope="col">Option</th><th scope="col">What to set</th></tr></thead>
-          <tbody>
-            <tr><td><code>url</code></td><td>Base URL of your YBA instance.</td></tr>
-            <tr><td><code>customer_uuid</code></td><td>Your customer ID, shown under <strong>Profile &gt; User Profile</strong> in YBA.</td></tr>
-            <tr><td><code>api_key</code></td><td>API token from <strong>Profile &gt; User Profile &gt; Generate Key</strong>. The user needs the Admin role or higher.</td></tr>
-            <tr><td><code>node_name</code></td><td>A name for the node.</td></tr>
-            <tr><td><code>node_external_fqdn</code></td><td>FQDN or IP address of the node, reachable from the YBA server.</td></tr>
-          </tbody>
-        </table></div>
-        <p class="table-caption">Provider details (the provider is created if it doesn’t exist)</p>
-        <div class="table-wrap"><table class="opts">
-          <thead><tr><th scope="col">Option</th><th scope="col">What to set</th></tr></thead>
-          <tbody>
-            <tr><td><code>provider name</code></td><td>Name of the new or existing provider to add the node to.</td></tr>
-            <tr><td><code>region name</code></td><td>Region of the node, for example <code>us-west-1</code>.</td></tr>
-            <tr><td><code>zone name</code></td><td>Zone of the node, for example <code>us-west-1a</code>.</td></tr>
-            <tr><td><code>instance_type name</code></td><td>Existing instance type, or a name for a new one (for example <code>c5.large</code>).</td></tr>
-            <tr><td><code>cores</code>, <code>memory_size</code>, <code>volume_size</code></td><td>Cores, memory (GB) and volume size (GB). Optional when using an existing instance type.</td></tr>
-            <tr><td><code>mount_points</code></td><td>Data mount points, created before you run the script. Optional when using an existing instance type.</td></tr>
-          </tbody>
-        </table></div>
-        <p>The <code>logging</code> options (level, directory, file) control the provisioning log.</p>
-      </li>
-      <li>
-        <strong>Run the script</strong> as root or via <code>sudo</code>. It runs preflight checks, provisions the node (including ulimits and transparent hugepages), installs node agent, and, if configured, creates the provider or adds the node to it.
-<pre><code>sudo ./node-agent-provision.sh</code></pre>
-      </li>
-      <li><strong>Reboot the node.</strong> If a preflight check failed, a reboot can also fix some issues, such as ulimit settings.</li>
-      <li><strong>Verify</strong> by opening <code>https://&lt;yba-host&gt;/nodeagent</code>. It lists the activated node agents and their status.</li>
-    </ol>
-
-    <h3>More options</h3>
-    <details>
-      <summary>Split provisioning between an OS team and a DB team</summary>
-      <p>Both teams use the same package and configuration file. The OS team runs only the steps that need root: creating the <code>yugabyte</code> user, chrony, THP, ulimits, sysctl, sudoers and root systemd units.</p>
-<pre><code>sudo ./node-agent-provision.sh --root</code></pre>
-      <p>The DB team then runs the user-scoped steps as the <code>yugabyte</code> user, with no <code>sudo</code>: user systemd, cgroups, node agent setup and registration with YBA.</p>
-<pre><code>./node-agent-provision.sh --noroot</code></pre>
-    </details>
-    <details>
-      <summary>Use one configuration file for many nodes</summary>
-      <p>From v2025.2.4.0, keep one shared YAML and pass only per-node values with <code>--config_override</code>. Each value is JSON matching the field type, and nested fields use dotted paths such as <code>yba.instance_type.name</code>.</p>
-<pre><code>./node-agent-provision.sh \
-    --config_override yba.node_external_fqdn=\"db-node-03.example.com\" \
-    --config_override ynp.node_ip=\"10.1.2.3\" \
-    --config_override yba.node_name=\"db-node-03\"</code></pre>
-    </details>
-    <details>
-      <summary>Reprovision nodes that are already in a provider</summary>
-      <p>From v2025.2.4.0, <code>--generate_config</code> builds <code>node-agent-provision-generated.yaml</code> from YBA, given the YBA URL, API token and node FQDN or IP. Use <code>--generate_and_run</code> to generate the file and run with it:</p>
-<pre><code>./node-agent-provision.sh --generate_and_run --provision
-./node-agent-provision.sh --generate_and_run --dry_run</code></pre>
-      <p>See also <a href="https://docs.yugabyte.com/stable/yugabyte-platform/manage-deployments/reprovision-nodes/">Reprovision universe nodes</a>.</p>
-    </details>
-    <details>
-      <summary>Run only the preflight checks</summary>
-<pre><code>sudo ./node-agent-provision.sh --preflight_check</code></pre>
-      <p>From v2025.2.4.0, <code>--preflight_check_out_file</code> saves the check results as JSON for automation.</p>
-    </details>
-    <details>
-      <summary>Allow-list the script in sudoers</summary>
-      <p>If your security policy requires listing the exact commands run under <code>sudo</code>, add these two:</p>
-<pre><code>sudo ./node-agent-provision.sh --preflight_check
-sudo ./node-agent-provision.sh</code></pre>
-      <p>To audit what the script will run, find the rendered templates from a preflight run and inspect them with <code>cat</code>. The first file is the precheck template and the second is the execution template; both vary by OS and YBA release.</p>
-<pre><code>sudo ./node-agent-provision.sh --preflight_check 2&gt;&amp;1 | grep "INFO - /tmp/tmp.*$"</code></pre>
-    </details>
-    <p class="source">Source: <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/server-nodes-software/software-on-prem/">Automatically provision database nodes for on-premises providers</a>.</p>
-  </section>
-
-  <h2>Common questions</h2>
-  <details>
-    <summary>Which mode is “automatic”?</summary>
-    <p>Both modes end with nodes that YBA manages automatically. The only difference is who performs OS-level provisioning: YBA (Privileged) or your administrator via the script (Unprivileged).</p>
-  </details>
-  <details>
-    <summary>Does Unprivileged mean YBA can’t manage my universe?</summary>
-    <p>No. After provisioning, YBA manages the universe through the node agent in both modes: creating universes, upgrades, scaling, backups, and so on.</p>
-  </details>
-  <details>
-    <summary>What if I need to reprovision a node or apply OS changes later?</summary>
-    <p>In Privileged mode, YBA performs them over SSH. In Unprivileged mode, your administrator re-runs <code>node-agent-provision.sh</code> on the node. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/manage-deployments/reprovision-nodes/">Reprovision nodes</a>.</p>
-  </details>
-  <details>
-    <summary>How do older terms map to these modes?</summary>
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th scope="col">Older term</th><th scope="col">Current term</th></tr></thead>
-        <tbody>
-          <tr><td>Legacy automatic provisioning, “sudo” provisioning</td><td>Privileged</td></tr>
-          <tr><td>Automatic provisioning (node agent script), “non-sudo” provisioning</td><td>Unprivileged</td></tr>
-          <tr><td>Legacy fully manual provisioning</td><td>Unprivileged (run <code>node-agent-provision.sh</code> locally on the node)</td></tr>
-          <tr><td>Manually Provision Nodes ON / OFF</td><td>Unprivileged / Privileged</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </details>
-
-  <footer>Draft companion to the <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises/">YugabyteDB Anywhere on-premises provider documentation</a>.</footer>
+  <footer>Draft companion to the <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises/">YugabyteDB Anywhere on-premises provider documentation</a>. See also the <a href="guide.html">full comparison and setup guide</a>.</footer>
 </main>
-<script>
-  (function () {
-    var sw = document.getElementById('mode-switch');
-    var state = document.getElementById('switch-state');
-    function set(on) {
-      sw.setAttribute('aria-checked', on ? 'true' : 'false');
-      state.textContent = on ? 'is ON' : 'is OFF';
-      document.body.setAttribute('data-mode', on ? 'unprivileged' : 'privileged');
-      if (history.replaceState) history.replaceState(null, '', on ? '#unprivileged' : '#privileged');
-    }
-    sw.addEventListener('click', function () { set(sw.getAttribute('aria-checked') !== 'true'); });
-    set(location.hash === '#unprivileged');
-  })();
-</script>
 </body>
 </html>
