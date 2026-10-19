@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>On-premises provisioning: Privileged vs Unprivileged | YugabyteDB Anywhere</title>
+<meta name="description" content="Choose between Privileged and Unprivileged provisioning for YugabyteDB Anywhere on-premises providers.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --ink: #1c2430;
+    --muted: #586374;
+    --rule: #d8dce3;
+    --priv: #0e6e6e;
+    --priv-soft: #e3f1f0;
+    --unpriv: #a65f0c;
+    --unpriv-soft: #fbefdf;
+    --accent: var(--priv);
+    --accent-soft: var(--priv-soft);
+    --code-bg: #eceff3;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161c;
+      --surface: #1a2028;
+      --ink: #e6e9ee;
+      --muted: #9aa5b4;
+      --rule: #2e3641;
+      --priv: #4fb8b4;
+      --priv-soft: #173231;
+      --unpriv: #e5a04f;
+      --unpriv-soft: #3a2a14;
+      --code-bg: #232a34;
+      color-scheme: dark;
+    }
+  }
+  body[data-mode="unprivileged"] { --accent: var(--unpriv); --accent-soft: var(--unpriv-soft); }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 17px/1.6 "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  main { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 5rem; }
+
+  h1 { font-size: 2.1rem; line-height: 1.2; font-weight: 600; margin: 0 0 0.75rem; letter-spacing: -0.01em; }
+  h2 { font-size: 1.4rem; line-height: 1.3; font-weight: 600; margin: 3rem 0 0.75rem; }
+  h3 { font-size: 1.1rem; font-weight: 600; margin: 2rem 0 0.5rem; }
+  p, li { max-width: 68ch; }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  a:focus-visible, button:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+  code {
+    font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.88em;
+    background: var(--code-bg);
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+  }
+  .lede { color: var(--muted); font-size: 1.1rem; margin: 0 0 2.5rem; }
+
+  /* The switch panel: mirrors the YBA "Manually Provision Nodes" slider */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-left: 6px solid var(--accent);
+    border-radius: 10px;
+    padding: 1.5rem 1.5rem 1.25rem;
+    transition: border-color 0.25s ease;
+  }
+  .question { font-size: 1.2rem; font-weight: 600; margin: 0 0 1.25rem; }
+  .switch-row { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+  .switch {
+    appearance: none; border: 0; padding: 0; cursor: pointer;
+    width: 3.6rem; height: 2rem; border-radius: 1rem;
+    background: var(--rule); position: relative; flex: none;
+    transition: background 0.25s ease;
+  }
+  .switch::after {
+    content: ""; position: absolute; top: 0.25rem; left: 0.25rem;
+    width: 1.5rem; height: 1.5rem; border-radius: 50%;
+    background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: transform 0.25s ease;
+  }
+  .switch[aria-checked="true"] { background: var(--unpriv); }
+  .switch[aria-checked="true"]::after { transform: translateX(1.6rem); }
+  .switch-label { font-weight: 500; }
+  .switch-state { color: var(--muted); }
+  .verdict {
+    margin: 1.25rem 0 0; padding: 0.9rem 1rem;
+    background: var(--accent-soft); border-radius: 6px;
+    transition: background 0.25s ease;
+  }
+  .verdict strong { color: var(--accent); }
+  .hint { color: var(--muted); font-size: 0.92rem; margin: 0.9rem 0 0; }
+
+  body[data-mode="privileged"] .only-unpriv,
+  body[data-mode="unprivileged"] .only-priv { display: none; }
+
+  .mode-name { color: var(--accent); }
+
+  ol.steps { padding-left: 1.4rem; }
+  ol.steps > li { margin-bottom: 0.9rem; padding-left: 0.3rem; }
+  ol.steps > li::marker { color: var(--accent); font-weight: 600; }
+  ul { padding-left: 1.3rem; }
+  ul li { margin-bottom: 0.35rem; }
+
+  .callout {
+    border: 1px solid var(--rule); border-radius: 6px;
+    padding: 0.85rem 1rem; margin: 1.25rem 0; background: var(--surface);
+  }
+  .callout.warn { border-color: var(--unpriv); }
+
+  .table-wrap { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--rule); border-radius: 8px; background: var(--surface); }
+  table { border-collapse: collapse; width: 100%; min-width: 36rem; font-size: 0.95rem; }
+  th, td { text-align: left; vertical-align: top; padding: 0.7rem 0.9rem; border-bottom: 1px solid var(--rule); }
+  tr:last-child th, tr:last-child td { border-bottom: 0; }
+  thead th { font-weight: 600; }
+  tbody th { font-weight: 500; color: var(--muted); width: 26%; }
+  th.col-priv { color: var(--priv); }
+  th.col-unpriv { color: var(--unpriv); }
+  body[data-mode="privileged"] td.c-priv,
+  body[data-mode="unprivileged"] td.c-unpriv { background: var(--accent-soft); }
+
+  details { border-top: 1px solid var(--rule); padding: 0.9rem 0; }
+  details:last-of-type { border-bottom: 1px solid var(--rule); }
+  summary { cursor: pointer; font-weight: 500; }
+  details p { margin: 0.6rem 0 0; }
+
+  footer { margin-top: 4rem; color: var(--muted); font-size: 0.9rem; }
+
+  @media (max-width: 520px) {
+    body { font-size: 16px; }
+    h1 { font-size: 1.7rem; }
+    .panel { padding: 1.25rem 1rem 1rem; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition: none !important; }
+  }
+</style>
+</head>
+<body data-mode="privileged">
+<main>
+  <h1>On-premises provisioning: Privileged or Unprivileged</h1>
+  <p class="lede">With on-premises providers, YugabyteDB Anywhere (YBA) does not create VMs. You create the VMs and install a supported Linux OS, then add them to the provider’s free pool of nodes. Whether a node must be provisioned before you add it depends on the provisioning mode.</p>
+
+  <section class="panel" aria-labelledby="q">
+    <p class="question" id="q">Will you give YBA an SSH user with passwordless <code>sudo</code> on your database nodes?</p>
+    <div class="switch-row">
+      <button class="switch" id="mode-switch" role="switch" aria-checked="false" aria-labelledby="switch-label"></button>
+      <span><span class="switch-label" id="switch-label">Manually Provision Nodes</span> <span class="switch-state" id="switch-state">is OFF</span></span>
+    </div>
+    <p class="verdict only-priv"><strong>Privileged.</strong> Yes, YBA gets <code>sudo</code>. You add bare VMs and YBA provisions them over SSH, including OS-level settings.</p>
+    <p class="verdict only-unpriv"><strong>Unprivileged.</strong> No, YBA never gets <code>sudo</code>. Your system administrator runs <code>node-agent-provision.sh</code> on each node first; the script also adds the node to the free pool.</p>
+    <p class="hint">This switch works like the <strong>Manually Provision Nodes</strong> option under <strong>Advanced</strong> in the YBA provider settings. OFF is Privileged, ON is Unprivileged.</p>
+  </section>
+
+  <h2>How the two modes compare</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th scope="col"></th><th scope="col" class="col-priv">Privileged</th><th scope="col" class="col-unpriv">Unprivileged</th></tr>
+      </thead>
+      <tbody>
+        <tr><th scope="row">YBA access to the node</th><td class="c-priv">SSH user with passwordless <code>sudo</code></td><td class="c-unpriv">SSH user without <code>sudo</code>, or no SSH from YBA during provisioning</td></tr>
+        <tr><th scope="row">Who provisions the node</th><td class="c-priv">YBA, automatically</td><td class="c-unpriv">Your system administrator, by running <code>node-agent-provision.sh</code> as root or via <code>sudo</code></td></tr>
+        <tr><th scope="row">OS-level changes (kernel settings, ulimits, users, directories, services)</th><td class="c-priv">Made by YBA over SSH</td><td class="c-unpriv">Made by the provisioning script, run by you</td></tr>
+        <tr><th scope="row">What you do on the node</th><td class="c-priv">Usually nothing beyond creating the VM and the SSH user</td><td class="c-unpriv">Download the node agent package, edit the configuration file, run the script</td></tr>
+        <tr><th scope="row">Typical reason to choose it</th><td class="c-priv">Simplest operation, with the fewest manual steps</td><td class="c-unpriv">Security policy does not allow third-party software to hold root or <code>sudo</code> access</td></tr>
+        <tr><th scope="row">Manually Provision Nodes</th><td class="c-priv">OFF</td><td class="c-unpriv">ON</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p>If you are unsure, start from your organization’s security policy. If granting root-equivalent access to YBA is not allowed, use Unprivileged provisioning.</p>
+
+  <!-- Privileged steps -->
+  <section class="only-priv" aria-labelledby="priv-steps">
+    <h2 id="priv-steps">Set up <span class="mode-name">Privileged</span> provisioning</h2>
+    <p>YBA connects to each node over SSH as a user with passwordless <code>sudo</code> and performs all OS-level provisioning itself. After the VMs exist, you typically do not need to run anything on the nodes.</p>
+    <ol class="steps">
+      <li><strong>Open the network.</strong> Have your network administrator open the ports YBA and the nodes need to communicate. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/networking/">Networking</a>.</li>
+      <li><strong>Create the VMs.</strong> Place them in the regions and availability zones where you will deploy universes, install a YugabyteDB-supported Linux OS, and create an SSH user with passwordless <code>sudo</code> on every VM (for example, <code>ec2-user</code> on AWS EC2). See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/server-nodes-software/software-on-prem-legacy/">Privileged provisioning requirements</a>.</li>
+      <li><strong>Create the provider in YBA.</strong> Define regions and availability zones, provide the SSH credentials for the <code>sudo</code>-capable user, provide the NTP setup, and leave <strong>Manually Provision Nodes</strong> OFF. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises-provider/">Create the provider configuration</a>.</li>
+      <li><strong>Define instance types.</strong> An instance type describes basic properties of the VMs you will add.</li>
+      <li><strong>Add the VMs to the provider.</strong> YBA provisions each VM automatically using the <code>sudo</code>-capable SSH user.</li>
+      <li><strong>Run pre-checks</strong> to validate the nodes. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises-nodes/">Add nodes to the on-premises provider</a>.</li>
+    </ol>
+    <div class="callout warn"><strong>Turning on Manually Provision Nodes changes the mode.</strong> The provider becomes Unprivileged: YBA stops provisioning nodes, and each node must be prepared with <code>node-agent-provision.sh</code> before you add it.</div>
+  </section>
+
+  <!-- Unprivileged steps -->
+  <section class="only-unpriv" aria-labelledby="unpriv-steps">
+    <h2 id="unpriv-steps">Set up <span class="mode-name">Unprivileged</span> provisioning</h2>
+    <p>YBA has no <code>sudo</code> access to your nodes. Your system administrator prepares each node by running the provisioning script, which also registers the node with YBA. Make sure YBA is <a href="https://docs.yugabyte.com/stable/yugabyte-platform/install-yugabyte-platform/">installed</a> and running first.</p>
+    <ol class="steps">
+      <li><strong>Open the network.</strong> Have your network administrator open the ports YBA and the nodes need to communicate. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/networking/">Networking</a>.</li>
+      <li><strong>Create the VMs.</strong> Place them in the regions and availability zones where you will deploy universes, and install a YugabyteDB-supported Linux OS. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/server-nodes-software/">Software requirements for on-premises nodes</a>.</li>
+      <li><strong>Provision each VM.</strong> Download the YBA node agent package to the VM, edit its configuration file, and run <code>node-agent-provision.sh</code> as root or via <code>sudo</code>. With YBA running, the script also creates or updates the provider (with Manually Provision Nodes ON), creates the instance type, and adds the node to the free pool. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/prepare/server-nodes-software/software-on-prem/">Automatically provision on-premises nodes</a>.</li>
+    </ol>
+    <h3>If the script didn’t create the provider or add the nodes</h3>
+    <p>Create the provider in the YBA UI and turn <strong>Manually Provision Nodes</strong> ON under <strong>Advanced</strong>; see <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises-provider/">Manage the provider configuration</a>. Then add the provisioned VMs using their IP addresses; see <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises-nodes/">Add nodes to the on-premises provider</a>.</p>
+  </section>
+
+  <h2>Common questions</h2>
+  <details>
+    <summary>Which mode is “automatic”?</summary>
+    <p>Both modes end with nodes that YBA manages automatically. The only difference is who performs OS-level provisioning: YBA (Privileged) or your administrator via the script (Unprivileged).</p>
+  </details>
+  <details>
+    <summary>Does Unprivileged mean YBA can’t manage my universe?</summary>
+    <p>No. After provisioning, YBA manages the universe through the node agent in both modes: creating universes, upgrades, scaling, backups, and so on.</p>
+  </details>
+  <details>
+    <summary>What if I need to reprovision a node or apply OS changes later?</summary>
+    <p>In Privileged mode, YBA performs them over SSH. In Unprivileged mode, your administrator re-runs <code>node-agent-provision.sh</code> on the node. See <a href="https://docs.yugabyte.com/stable/yugabyte-platform/manage-deployments/reprovision-nodes/">Reprovision nodes</a>.</p>
+  </details>
+  <details>
+    <summary>How do older terms map to these modes?</summary>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th scope="col">Older term</th><th scope="col">Current term</th></tr></thead>
+        <tbody>
+          <tr><td>Legacy automatic provisioning, “sudo” provisioning</td><td>Privileged</td></tr>
+          <tr><td>Automatic provisioning (node agent script), “non-sudo” provisioning</td><td>Unprivileged</td></tr>
+          <tr><td>Legacy fully manual provisioning</td><td>Unprivileged (run <code>node-agent-provision.sh</code> locally on the node)</td></tr>
+          <tr><td>Manually Provision Nodes ON / OFF</td><td>Unprivileged / Privileged</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
+
+  <footer>Draft companion to the <a href="https://docs.yugabyte.com/stable/yugabyte-platform/configure-yugabyte-platform/on-premises/">YugabyteDB Anywhere on-premises provider documentation</a>.</footer>
+</main>
+<script>
+  (function () {
+    var sw = document.getElementById('mode-switch');
+    var state = document.getElementById('switch-state');
+    function set(on) {
+      sw.setAttribute('aria-checked', on ? 'true' : 'false');
+      state.textContent = on ? 'is ON' : 'is OFF';
+      document.body.setAttribute('data-mode', on ? 'unprivileged' : 'privileged');
+      if (history.replaceState) history.replaceState(null, '', on ? '#unprivileged' : '#privileged');
+    }
+    sw.addEventListener('click', function () { set(sw.getAttribute('aria-checked') !== 'true'); });
+    set(location.hash === '#unprivileged');
+  })();
+</script>
+</body>
+</html>
